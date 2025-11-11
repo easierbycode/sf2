@@ -1,20 +1,31 @@
 #GeneralInputHandler.gd
 class_name GeneralInputHandler
-extends Node
+extends CharacterBody2D
 
 @export var _characterName : String
 @export var _animPlayer : AnimationPlayer
+
 var _waitAmountOfFrames : int = 10
 var _elapsedWaitTime : float
 
 var _isCrouching : bool = false
 var _isAttacking : bool = false
 
+var _gravity : float = 980.0
+var _jump_force : float = -400.0
+var _move_speed : float = 200.0
+
 var _registeredKeyInputs : Array
 var _moveSetDictionary : Dictionary
 
 func _ready():
 	SetupCharacterMoveSet(_characterName)
+
+func _physics_process(delta):
+	if not is_on_floor():
+		velocity.y += _gravity * delta
+
+	move_and_slide()
 
 func _process(delta):
 	if(_isAttacking): return
@@ -27,19 +38,30 @@ func _process(delta):
 
 func TranslateInput():
 	var key : String = ""
-	if(Input.is_action_just_pressed("Left") or Input.is_action_just_pressed("Up") or 
-	Input.is_action_just_pressed("Right") or Input.is_action_just_pressed("Down") or 
-	Input.is_action_just_pressed("Punch") or Input.is_action_just_pressed("Kick")):
-		
-		if(Input.is_action_just_pressed("Punch")): key = "P"
-		elif(Input.is_action_just_pressed("Kick")): key = "K"
-		elif(Input.is_action_just_pressed("Up")): key = "J"
-		elif(Input.is_action_just_pressed("Down")): key = "C"
-		elif(Input.is_action_just_pressed("Left") or Input.is_action_just_pressed("Right")): key = "M"
-	elif(Input.is_action_just_released("Down")):
-		key = "I"
 	
+	# Actions that should be registered
+	if Input.is_action_just_pressed("Punch"): key = "P"
+	elif Input.is_action_just_pressed("Kick"): key = "K"
+	elif Input.is_action_just_pressed("Up") and is_on_floor():
+		velocity.y = _jump_force
+		key = "J"
+	elif Input.is_action_just_pressed("Down"):
+		key = "C"
+	elif Input.is_action_just_released("Down"):
+		key = "I"
+	elif Input.is_action_just_pressed("Left") or Input.is_action_just_pressed("Right"):
+		key = "M"
+
+	# Continuous movement
+	if Input.is_action_pressed("Left"):
+		velocity.x = -_move_speed
+	elif Input.is_action_pressed("Right"):
+		velocity.x = _move_speed
+	else:
+		velocity.x = 0
+
 	if(key == ""): return
+
 	PerformMove(key)
 	_elapsedWaitTime = 0
 	_registeredKeyInputs.append(key)
@@ -58,14 +80,26 @@ func PerformMove(key : String):
 	
 	_animPlayer.play(animNameKey)
 
+func perform_shoryuken():
+	SetAttackingBool(true)
+	velocity.y = _jump_force * 1.2
+	_animPlayer.play(ReturnProperAnimName(["M", "C", "M", "P"]))
+	_registeredKeyInputs.clear()
+	await get_tree().create_timer(0.5).timeout
+	SetAttackingBool(false)
+
 func PerformComboMove():
 	if "I" in _registeredKeyInputs:
 		for release in range(len(_registeredKeyInputs) - 1, -1, -1):
 			if _registeredKeyInputs[release] == "I":
 				_registeredKeyInputs.remove_at(release)
 	
-	if(!_moveSetDictionary.has(_registeredKeyInputs) or _registeredKeyInputs.size() < 3):
+	if(!_moveSetDictionary.has(_registeredKeyInputs)):
 		_registeredKeyInputs.clear()
+		return
+
+	if _registeredKeyInputs == ["M", "C", "M", "P"]:
+		perform_shoryuken()
 		return
 	
 	_animPlayer.play(ReturnProperAnimName(_registeredKeyInputs))

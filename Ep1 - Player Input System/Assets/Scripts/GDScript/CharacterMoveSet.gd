@@ -13,7 +13,7 @@ var generalMoves : Dictionary = {
 } 
 
 var ryuMoves : Dictionary = {
-	["C", "M", "C", "M", "P"] : "Shouryuken"
+	["M", "C", "M", "P"] : "Shouryuken"
 }
 
 var characters : Dictionary = {
