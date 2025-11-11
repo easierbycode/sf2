@@ -55,7 +55,7 @@ _data = {
 "Ryu_Shouryuken_Anim": ExtResource("5_cx7oe")
 }
 
-[node name="Player" type="Node2D"]
+[node name="Player" type="CharacterBody2D"]
 
 [node name="Graphics" type="Node2D" parent="."]
 scale = Vector2(3, 3)
